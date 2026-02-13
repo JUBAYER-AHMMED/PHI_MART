@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from decimal import Decimal
-from product.models import Category,Product,Review
+from product.models import Category,Product,Review,ProductImage
 from django.contrib.auth import get_user_model
 # class CategorySerializer(serializers.Serializer):
 #     id  = serializers.IntegerField()
@@ -19,7 +19,7 @@ from django.contrib.auth import get_user_model
 #         count = Product.objects.filter(category = category).count()
 #         return count
 class CategorySerializer(serializers.ModelSerializer):
-    product_count = serializers.IntegerField(read_only = True)
+    product_count = serializers.IntegerField(read_only = True, help_text='Return the number of products in this category')
 
     class Meta:
         model = Category
@@ -46,12 +46,18 @@ class CategorySerializer(serializers.ModelSerializer):
 #         return round(product.price * Decimal(1.1),2)
 
 
+class ProductImageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ProductImage
+        fields = ['id','image']
+
 class ProductSerializer(serializers.ModelSerializer):
+    images = ProductImageSerializer(many=True, read_only=True)
     class Meta:
         model = Product
         # fields = '__all__'
         fields = [
-            'id', 'name','description','stock', 'price','price_with_tax','category'
+            'id', 'name','description','stock', 'price','price_with_tax','images','category'
         ]
     
     price_with_tax = serializers.SerializerMethodField(method_name='calculate_tax')
@@ -105,3 +111,4 @@ class ReviewSerializer(serializers.ModelSerializer):
         product_id = self.context['product_id']
         review = Review.objects.create(product_id = product_id, **validated_data)
         return review
+    

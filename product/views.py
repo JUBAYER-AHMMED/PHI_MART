@@ -3,9 +3,9 @@ from django.http import HttpResponse
 from rest_framework.decorators import api_view
 from django.db.models import Count
 from rest_framework.response import Response
-from product.models import Product, Category,Review
+from product.models import Product, Category,Review, ProductImage
 from rest_framework import status
-from product.serializers import ProductSerializer, CategorySerializer, ReviewSerializer
+from product.serializers import ProductSerializer, CategorySerializer, ReviewSerializer, ProductImageSerializer
 from rest_framework.views import APIView
 from rest_framework.mixins import CreateModelMixin, ListModelMixin
 from rest_framework.generics import ListCreateAPIView, RetrieveUpdateDestroyAPIView
@@ -23,7 +23,15 @@ from product.paginations import DefaultPagination
 from api.permissions import IsAdminOrReadOnly, FullDjangoModelPermission
 
 from product.permissions import IsReviewAuthorOrReadOnly
+from drf_yasg.utils import swagger_auto_schema
 class ProductViewSet(ModelViewSet):
+    """
+    API endpoint for managing products in the e-commerce store
+     - Allows authenticated admin to create , update, delete products
+     - Allows users to browse ad filter product
+     - Support searching by name,description and category
+     - Support ordering y price ad updated at
+    """
     queryset = Product.objects.all()
     serializer_class = ProductSerializer
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
@@ -44,8 +52,25 @@ class ProductViewSet(ModelViewSet):
     # permission_classes = [DjangoModelPermissions]
     # permission_classes = [FullDjangoModelPermission]
     # permission_classes = [DjangoModelPermissionsOrAnonReadOnly]
+    @swagger_auto_schema(
+        operation_summary='Retrive a list of products'
+    )
+    def list(self, request, *args, **kwargs):
+        """Retrieve all the products"""
+        return super().list(request, *args, **kwargs)
     
-    
+    @swagger_auto_schema(
+            operation_summary = 'Create a product by admin',
+            operation_description='This allow a admin to create a product',
+            request_body = ProductSerializer,
+            responses={
+                201: ProductSerializer,
+                400: 'Bad Request'
+            }
+    )
+    def create(self, request, *args, **kwargs):
+        """Only autheticated admin can create product"""
+        return super().create(request, *args, **kwargs)
 
     # def get_queryset(self):
     #     queryset = Product.objects.all()
@@ -55,12 +80,27 @@ class ProductViewSet(ModelViewSet):
     #         queryset = Product.objects.filter(category_id = category_id)
     #     return queryset
 
-    def destroy(self, request, *args, **kwargs):
-        product = self.get_object()
-        if product.stock > 10:
-            return Response({'message':'Product with stock more than 10 could not be deleted'})
-        self.perform_destroy(product)
-        return Response(status=status.HTTP_204_NO_CONTENT)
+    # def destroy(self, request, *args, **kwargs):
+    #     product = self.get_object()
+    #     if product.stock > 10:
+    #         return Response({'message':'Product with stock more than 10 could not be deleted'})
+    #     self.perform_destroy(product)
+    #     return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class ProductImageViewSet(ModelViewSet):
+    serializer_class = ProductImageSerializer
+    permission_classes = [IsAdminOrReadOnly]
+
+    def get_queryset(self):
+        # queryset = ProductImage.objects.filter(product_id = self.kwargs['product_pk'])
+        queryset = ProductImage.objects.filter(product_id = self.kwargs.get('product_pk'))
+        return queryset
+    def perform_create(self, serializer):
+        serializer.save(product_id=self.kwargs['product_pk'])
+        # serializer.save(product_id=self.kwargs.get('product_pk'))
+
+    
 
 class CategoryViewSet(ModelViewSet):
     queryset = Category.objects.annotate(product_count = Count('products'))
@@ -80,11 +120,13 @@ class ReviewViewSet(ModelViewSet):
         serializer.save(user=self.request.user)
 
     def get_queryset(self):
-        queryset = Review.objects.filter(product_id = self.kwargs['product_pk'])
+        # queryset = Review.objects.filter(product_id = self.kwargs['product_pk'])
+        queryset = Review.objects.filter(product_id = self.kwargs.get('product_pk'))
         return queryset
 
     def get_serializer_context(self):
-        return {'product_id':self.kwargs['product_pk']}
+        # return {'product_id':self.kwargs['product_pk']}
+        return {'product_id':self.kwargs.get('product_pk')}
 
 
 # class ProductList(ListCreateAPIView):
@@ -156,3 +198,5 @@ class ReviewViewSet(ModelViewSet):
 # class CategoryDetails(RetrieveUpdateDestroyAPIView):
 #     queryset = Category.objects.annotate(product_count = Count('products'))
 #     serializer_class = CategorySerializer
+
+
