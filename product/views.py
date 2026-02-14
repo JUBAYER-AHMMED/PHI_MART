@@ -32,7 +32,7 @@ class ProductViewSet(ModelViewSet):
      - Support searching by name,description and category
      - Support ordering y price ad updated at
     """
-    queryset = Product.objects.all()
+    # queryset = Product.objects.prefetch_related('images').all()
     serializer_class = ProductSerializer
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     # filterset_fields = ['category_id','price']
@@ -42,6 +42,9 @@ class ProductViewSet(ModelViewSet):
     search_fields = ['name','description', 'category__name']
     ordering_fields = ['price', 'updated_at']
     # permission_classes = [IsAdminUser]
+
+    def get_queryset(self):
+        return Product.objects.prefetch_related('images').all()
 
     # def get_permissions(self):
     #     if self.request.method == 'GET':
