@@ -76,6 +76,7 @@ WSGI_APPLICATION = 'phi_mart.wsgi.app'
 CORS_ALLOWED_ORIGINS = [
     'http://localhost:5173',
     'http://localhost:5174',
+    'https://phimart-client-gamma.vercel.app/'
 ]
 INTERNAL_IPS = [
     # ...

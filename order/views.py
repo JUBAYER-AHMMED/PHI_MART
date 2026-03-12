@@ -8,18 +8,42 @@ from rest_framework.decorators import action
 from order.services import OrderService
 from rest_framework.response import Response
 # Create your views here.
-class CartViewSet(CreateModelMixin,RetrieveModelMixin,DestroyModelMixin,GenericViewSet):
-    # list,update,delete,get
-    # queryset = Cart.objects.all()
+from rest_framework.response import Response
+from rest_framework import status
+
+class CartViewSet(CreateModelMixin,
+                  RetrieveModelMixin,
+                  DestroyModelMixin,
+                  GenericViewSet):
+
+    serializer_class = CartSerializer
+    permission_classes = [IsAuthenticated]
+
     def get_queryset(self):
         if getattr(self, 'swagger_fake_view', False):
             return Cart.objects.none()
-        return Cart.objects.prefetch_related('items__product').filter(user = self.request.user)
-    serializer_class = CartSerializer
-    permission_classes=[IsAuthenticated]
 
-    def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
+        return Cart.objects.prefetch_related(
+            'items__product'
+        ).filter(user=self.request.user)
+
+    # def create(self, request, *args, **kwargs):
+    #     serializer = self.get_serializer(data=request.data)
+
+    #     if not serializer.is_valid():
+    #         print(serializer.errors)
+    #         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    #     self.perform_create(serializer)
+    #     return Response(serializer.data, status=status.HTTP_201_CREATED)
+    def create(self, request, *args, **kwargs):
+        cart, created = Cart.objects.get_or_create(user=request.user)
+
+        serializer = self.get_serializer(cart)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    # def perform_create(self, serializer):
+    #     print('user:', self.request.user)
+    #     serializer.save(user=self.request.user)
 
 
 
